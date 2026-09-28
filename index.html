@@ -208,7 +208,7 @@ let drawing = false;
 let phase = 'play';      // play | result | over
 let invalidStroke = false;
 let winFlash = 0;
-let solutionPath = [];   // список клеток правильного пути
+let solutionPath = [];
 
 function resize(){
   const rect = document.getElementById('game-wrap').getBoundingClientRect();
@@ -225,7 +225,7 @@ function resize(){
 }
 
 // ============================================================
-// ГЕНЕРАЦИЯ ЛАБИРИНТА (recursive backtracker)
+// ГЕНЕРАЦИЯ ЛАБИРИНТА
 // ============================================================
 function makeMaze(cols, rows){
   const cells = [];
@@ -254,7 +254,6 @@ function makeMaze(cols, rows){
   return cells;
 }
 
-// Размер сетки по уровню — растёт медленно
 function gridForLevel(level){
   if (level <= 1) return {cols: 4, rows: 5};
   if (level <= 2) return {cols: 4, rows: 6};
@@ -268,10 +267,8 @@ function buildLevel(level){
   const {cols, rows} = gridForLevel(level);
   const cells = makeMaze(cols, rows);
 
-  // Добыча — всегда случайная
   targetAnimal = ANIMALS[Math.floor(Math.random()*ANIMALS.length)];
 
-  // Старт — верх-центр, финиш — низ-центр
   const startX = Math.floor(cols/2);
   const startY = 0;
   const endX   = Math.floor(cols/2);
@@ -337,7 +334,6 @@ function rebuildSegments(){
       const b = cellCenter(x, y+1);
       segs.push({x1:a.x, y1:a.y, x2:b.x, y2:b.y});
     }
-    // точка в центре клетки — чтобы «середина» тоже считалась коридором
     segs.push({x1:a.x, y1:a.y, x2:a.x, y2:a.y});
   }
   segments = segs;
@@ -356,7 +352,7 @@ function distToSeg(px, py, s){
 }
 
 function pointInCorridor(px, py){
-  const tol = maze.corridor * 0.5;   // можно касаться края коридора
+  const tol = maze.corridor * 0.5;
   for (let i = 0; i < segments.length; i++){
     if (distToSeg(px, py, segments[i]) <= tol) return true;
   }
@@ -426,7 +422,6 @@ function drawBackground(){
   drawCloud(W*0.55, H*0.03, 46);
   drawCloud(W*0.86, H*0.06, 30);
 
-  // Травинки вне лабиринта
   if (!maze) return;
   const k = Math.min(W, H) / 400;
   ctx.strokeStyle = 'rgba(35,85,25,0.35)';
@@ -454,7 +449,6 @@ function drawCorridors(){
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
 
-  // Тень
   ctx.strokeStyle = 'rgba(60,40,20,0.28)';
   ctx.lineWidth = maze.corridor + 6;
   for (const s of segments){
@@ -462,7 +456,6 @@ function drawCorridors(){
     ctx.beginPath(); ctx.moveTo(s.x1, s.y1); ctx.lineTo(s.x2, s.y2); ctx.stroke();
   }
 
-  // Белый путь
   ctx.strokeStyle = '#ffffff';
   ctx.lineWidth = maze.corridor;
   for (const s of segments){
@@ -470,7 +463,6 @@ function drawCorridors(){
     ctx.beginPath(); ctx.moveTo(s.x1, s.y1); ctx.lineTo(s.x2, s.y2); ctx.stroke();
   }
 
-  // Кружки в клетках — чтобы стыки и повороты были плавные
   const { cols, rows } = maze;
   ctx.fillStyle = '#ffffff';
   for (let y = 0; y < rows; y++) for (let x = 0; x < cols; x++){
@@ -584,7 +576,6 @@ function evaluateStroke(){
   const endDist = Math.hypot(endP.x - endPt.x, endP.y - endPt.y);
   const reachEnd = endDist < maze.cell * 0.75;
 
-  // Точность: доля точек, которые попали в коридор
   let offCount = 0;
   for (const p of stroke){
     if (!pointInCorridor(p.x, p.y)) offCount++;
@@ -654,7 +645,12 @@ function showGameOver(){
     'Завтра придёт 3 новые жизни. А пока — выполни задание и получи бонусную!',
     [
       ...bonusButtons(),
-      { label: 'Закрыть', cls: 'ghost', action: hideOverlay }
+      { label: 'Выйти из игры', cls: 'ghost', action: () => {
+          stopMusic();
+          if (window.vkBridge && typeof vkBridge.send === 'function'){
+            vkBridge.send('VKWebAppClose', { status: 'success' }).catch(() => {});
+          }
+      }}
     ]
   );
 }
@@ -871,7 +867,19 @@ document.getElementById('btn-exit').addEventListener('click', () => {
 function boot(){
   loadState();
   resize();
-  startLevel();
+
+  // ГЛАВНОЕ ИСПРАВЛЕНИЕ: если жизней нет — показываем экран "Жизни закончились",
+  // а не запускаем уровень. Раньше игра стартовала с 0 жизней.
+  if (state.lives <= 0){
+    buildLevel(state.level);
+    rebuildSegments();
+    updateHUD();
+    updateTarget();
+    phase = 'over';
+    setTimeout(showGameOver, 200);
+  } else {
+    startLevel();
+  }
 
   document.getElementById('btn-sound').textContent = state.sound ? '🔊' : '🔇';
 
