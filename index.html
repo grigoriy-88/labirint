@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Охота в лабиринте</title>
+<style>
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{
+    margin:0;height:100%;overflow:hidden;background:#2b1d12;
+    font-family:'Comic Sans MS','Trebuchet MS',system-ui,-apple-system,'Segoe UI',sans-serif;
+    user-select:none;-webkit-user-select:none;
+  }
+  #game-wrap{position:fixed;inset:0;overflow:hidden}
+  canvas{display:block;touch-action:none}
+
+  /* ---------- HUD ---------- */
+  #hud{
+    position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;
+    align-items:center;padding:calc(8px + env(safe-area-inset-top)) 12px 8px;gap:8px;
+    pointer-events:none;z-index:5;
+  }
+  .hud-right{display:flex;align-items:center;gap:6px;pointer-events:auto}
+  .chip{
+    background:rgba(255,255,255,.92);border-radius:999px;padding:6px 14px;
+    font-size:15px;font-weight:700;color:#5a3a1a;
+    box-shadow:0 3px 0 rgba(0,0,0,.18);white-space:nowrap;
+  }
+  .lives{display:flex;align-items:center;gap:2px;font-size:16px;line-height:1}
+  .lives b{font-size:13px;color:#c0392b;margin-left:2px}
+  .icon-btn{
+    border:none;background:rgba(255,255,255,.92);border-radius:50%;
+    width:38px;height:38px;font-size:18px;line-height:1;cursor:pointer;
+    box-shadow:0 3px 0 rgba(0,0,0,.18);display:flex;align-items:center;justify-content:center;
+    transition:transform .08s;font-family:inherit;color:#5a3a1a;
+  }
+  .icon-btn:active{transform:translateY(2px);box-shadow:0 1px 0 rgba(0,0,0,.18)}
+  #btn-bonus{font-size:15px;font-weight:700;width:auto;padding:0 12px;border-radius:999px;height:38px}
+
+  /* ---------- Цель ---------- */
+  #target-bar{
+    position:absolute;left:50%;bottom:calc(18px + env(safe-area-inset-bottom));
+    transform:translateX(-50%);z-index:5;
+    background:rgba(255,255,255,.94);border-radius:999px;padding:8px 20px;
+    font-size:16px;font-weight:700;color:#5a3a1a;display:flex;align-items:center;gap:8px;
+    box-shadow:0 4px 0 rgba(0,0,0,.2);white-space:nowrap;pointer-events:none;
+  }
+  #target-bar .tb-label{opacity:.6;font-weight:600;font-size:14px}
+  #target{display:flex;align-items:center;gap:6px;font-size:17px}
+
+  /* ---------- Подсказка ---------- */
+  #hint{
+    position:absolute;left:50%;bottom:calc(74px + env(safe-area-inset-bottom));
+    transform:translateX(-50%);z-index:5;
+    background:rgba(40,25,10,.72);color:#ffe9c0;border-radius:14px;
+    padding:8px 16px;font-size:13px;text-align:center;max-width:82vw;
+    transition:opacity .6s;pointer-events:none;
+  }
+  #hint.hide{opacity:0}
+
+  /* ---------- Тост ---------- */
+  #toast{
+    position:absolute;left:50%;bottom:calc(130px + env(safe-area-inset-bottom));
+    transform:translateX(-50%);z-index:20;
+    background:rgba(40,25,10,.88);color:#fff;border-radius:999px;
+    padding:10px 20px;font-size:14px;font-weight:700;white-space:nowrap;
+    transition:opacity .25s;pointer-events:none;
+  }
+  #toast.hidden{opacity:0}
+
+  /* ---------- Оверлей ---------- */
+  #overlay{
+    position:absolute;inset:0;z-index:30;display:flex;align-items:center;justify-content:center;
+    background:rgba(30,20,10,.55);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
+    padding:18px;transition:opacity .22s;
+  }
+  #overlay.hidden{opacity:0;pointer-events:none}
+  .card{
+    background:linear-gradient(#fffaf0,#ffe9c0);
+    border:4px solid #ffd28a;border-radius:28px;padding:22px 18px 18px;
+    width:100%;max-width:340px;max-height:88vh;overflow-y:auto;text-align:center;
+    box-shadow:0 12px 0 rgba(0,0,0,.22);
+    animation:pop .3s cubic-bezier(.2,1.5,.5,1);
+  }
+  @keyframes pop{from{transform:scale(.8);opacity:0}to{transform:scale(1);opacity:1}}
+  .ov-emoji{font-size:52px;line-height:1;margin-bottom:6px}
+  #ov-title{margin:0 0 8px;font-size:22px;color:#4a2c10;line-height:1.2}
+  #ov-text{margin:0 0 16px;font-size:14px;color:#7a5a35;line-height:1.45}
+  .ov-buttons{display:flex;flex-direction:column;gap:9px}
+
+  .btn{
+    border:none;border-radius:999px;padding:13px 18px;font-size:16px;font-weight:700;
+    cursor:pointer;font-family:inherit;color:#fff;
+    background:linear-gradient(#8fd35a,#5aa62e);
+    box-shadow:0 4px 0 #3d7a1c;transition:transform .08s,box-shadow .08s;
+    display:flex;align-items:center;justify-content:center;gap:8px;
+  }
+  .btn:active{transform:translateY(3px);box-shadow:0 1px 0 #3d7a1c}
+  .btn small{font-weight:700;font-size:12px;opacity:.85}
+  .btn.bonus{
+    background:#fff;color:#5a3a1a;border:2px solid #ffd28a;box-shadow:0 4px 0 #e8b96a;
+    justify-content:flex-start;font-size:14px;padding:12px 16px;
+  }
+  .btn.bonus:active{box-shadow:0 1px 0 #e8b96a}
+  .btn.bonus.used{opacity:.5;filter:grayscale(.6)}
+  .btn.ghost{background:#e8dcc8;color:#7a5a35;box-shadow:0 4px 0 #c4b39a;font-size:14px}
+  .btn.ghost:active{box-shadow:0 1px 0 #c4b39a}
+  .btn .bi{font-size:20px}
+  .btn .bt{display:flex;flex-direction:column;align-items:flex-start;flex:1;text-align:left}
+  .btn .bt span{font-size:14px;font-weight:700}
+  .btn .bt em{font-style:normal;font-size:11px;opacity:.65;font-weight:600}
+</style>
+</head>
+<body>
+<div id="game-wrap">
+  <canvas id="cv"></canvas>
+
+  <div id="hud">
+    <div class="chip">🏆 Уровень <b id="lvl">1</b></div>
+    <div class="hud-right">
+      <div class="chip lives" id="lives"></div>
+      <button class="icon-btn" id="btn-bonus">＋❤</button>
+      <button class="icon-btn" id="btn-sound">🔊</button>
+    </div>
+  </div>
+
+  <div id="target-bar">
+    <span class="tb-label">Цель:</span>
+    <span id="target">🐰 Заяц</span>
+  </div>
+
+  <div id="hint">Веди пальцем по тропинке от охотника к добыче 🤠</div>
+
+  <div id="toast" class="hidden"></div>
+
+  <div id="overlay" class="hidden">
+    <div class="card">
+      <div class="ov-emoji" id="ov-emoji">🎯</div>
+      <h2 id="ov-title"></h2>
+      <p id="ov-text"></p>
+      <div class="ov-buttons" id="ov-buttons"></div>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/@vkontakte/vk-bridge/dist/browser.min.js"></script>
+<script>
+/* =========================================================
+   НАСТРОЙКИ
+   ========================================================= */
+const GROUP_ID   = 228373135;   // <-- ID вашей группы/канала ВК
+const MAX_LIVES  = 9;           // максимум жизней
+const DAILY_LIVES= 3;           // сколько выдаётся на новый день
+const STORE_KEY  = 'hunt_maze_v1';
+
+/* =========================================================
+   ЖИВОТНЫЕ
+   ========================================================= */
+const ANIMALS = [
+  {e:'🐰', n:'Заяц'},   {e:'🦆', n:'Утка'},  {e:'🦊', n:'Лиса'},
+  {e:'🐗', n:'Кабан'},  {e:'🦌', n:'Олень'}, {e:'🐺', n:'Волк'},
+  {e:'🦉', n:'Сова'},   {e:'🐿️', n:'Белка'}, {e:'🐻', n:'Медведь'},
+  {e:'🦃', n:'Индюк'},
+];
+
+const BONUSES = [
+  {key:'sub',     icon:'📢', label:'Подписаться на группу',  hint:'+1 жизнь'},
+  {key:'comment', icon:'💬', label:'Оставить комментарий',   hint:'+1 жизнь'},
+  {key:'invite',  icon:'👥', label:'Пригласить друга',       hint:'+1 жизнь'},
+  {key:'msg',     icon:'✉️', label:'Разрешить сообщения',    hint:'+1 жизнь'},
+];
+
+/* =========================================================
+   СОСТОЯНИЕ + СОХРАНЕНИЕ
+   ========================================================= */
+const today = () => new Date().toISOString().slice(0,10);
+
+let state = {
+  day: today(),
+  level: 1,
+  lives: DAILY_LIVES,
+  bonuses: {},
+  sound: true,
+};
+
+function loadState(){
+  let p = null;
+  try { p = JSON.parse(localStorage.getItem(STORE_KEY) || 'null'); } catch(e){}
+  if (p && typeof p === 'object') {
+    state = Object.assign(state, p);
+    state.bonuses = state.bonuses || {};
+  }
+  // новый день — обновляем жизни и бонусы
+  if (state.day !== today()) {
+    state.day = today();
+    state.lives = DAILY_LIVES;
+    state.bonuses = {};
+  }
+  if (typeof state.lives !== 'number') state.lives = DAILY_LIVES;
+  if (typeof state.level !== 'number' || state.level < 1) state.level = 1;
+}
+function saveState(){
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch(e){}
+}
+
+/* =========================================================
+   АУДИО (лёгкая фоновая музыка + эффекты)
+   ========================================================= */
+let actx = null, master = null, musicTimer = null, musicStep = 0;
+
+const SCALE  = [261.63, 293.66, 329.63, 392.00, 440.00, 523.25, 587.33, 659.25];
+const MELODY = [0,2,4,2, 3,5,4,2, 1,3,5,3, 4,2,1,0];
+const BASSES = [130.81, 164.81, 196.00, 174.61];
+
+function initAudio(){
+  if (actx) return;
+  const AC = window.AudioContext || window.webkitAudioContext;
+  if (!AC) return;
+  actx = new AC();
+  master = actx.createGain();
+  master.gain.value = 0.75;
+  master.connect(actx.destination);
+}
+
+function playTone(freq, time, dur, vol, type){
+  if (!actx || !state.sound) return;
+  const o = actx.createOscillator(), g = actx.createGain();
+  o.type = type || 'sine';
+  o.frequency.value = freq;
+  g.gain.setValueAtTime(0.0001, time);
+  g.gain.linearRampToValueAtTime(vol, time + 0.09);
+  g.gain.exponentialRampToValueAtTime(0.0001, time + dur);
+  o.connect(g); g.connect(master);
+  o.start(time); o.stop(time + dur + 0.1);
+}
+
+function musicTick(){
+  if (!actx || !state.sound) return;
+  const now = actx.currentTime + 0.03;
+  const i = musicStep % MELODY.length;
+  playTone(SCALE[MELODY[i]], now, 1.15, 0.042, 'sine');
+  if (i % 4 === 0) playTone(BASSES[(musicStep >> 2) % BASSES.length], now, 1.7, 0.05, 'triangle');
+  if (i % 8 === 4) playTone(SCALE[MELODY[i]] * 2, now, 0.8, 0.018, 'sine');
+  musicStep++;
+}
+
+function startMusic(){
+  initAudio();
+  if (!actx || musicTimer) return;
+  if (actx.state === 'suspended') actx.resume();
+  musicStep = 0;
+  musicTick();
+  musicTimer = setInterval(musicTick, 420);
+}
+function stopMusic(){
+  if (musicTimer) { clearInterval(musicTimer); musicTimer = null; }
+}
+function sfxWin(){
+  if (!actx) return;
+  const n = actx.currentTime;
+  [523.25, 659.25, 783.99, 1046.50].forEach((f,i)=>playTone(f, n + i*0.085, 0.55, 0.13, 'triangle'));
+}
+function sfxLose(){
+  if (!actx) return;
+  const n = actx.currentTime;
+  [392.00, 311.13, 233.08].forEach((f,i)=>playTone(f, n + i*0.13, 0.5, 0.10, 'triangle'));
+}
+function sfxPop(){ if (actx) playTone(880, actx.currentTime, 0.09, 0.05, 'square'); }
+
+/* =========================================================
+   CANVAS
+   ========================================================= */
+const cv  = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+let W = 0, H = 0, cx = 0, cy = 0, R = 0;
+
+let layout = null;      // геометрия уровня
+let paths  = [];        // массив точек тропинок (пиксели)
+let animals = [];       // позиции животных
+let stroke = [];        // нарисованная игроком линия
+let drawing = false;
+let phase = 'play';     // play | result | over
+let winFlash = 0;       // время подсветки правильной тропы
+
+/* ---------- Генерация уровня ---------- */
+function shuffle(a){
+  a = a.slice();
+  for (let i = a.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function pathCount(level){
+  return Math.min(2 + Math.floor(level / 2), 5);   // 2 → 5
+}
+
+function makeDeco(){
+  const d = [];
+  for (let i = 0; i < 40; i++){
+    d.push({
+      x: Math.random(), y: Math.random(),
+      s: 0.6 + Math.random() * 0.9,
+      type: Math.random() < 0.55 ? 'grass' : (Math.random() < 0.7 ? 'flower' : 'bush')
+    });
+  }
+  return d;
+}
+
+function buildLevel(level){
+  const n = pathCount(level);
+  const pool = shuffle(ANIMALS).slice(0, n);
+  const baseAngle = Math.random() * Math.PI * 2;
+  const items = [];
+
+  for (let i = 0; i < n; i++){
+    const sector = (Math.PI * 2) / n;
+    items.push({
+      ang:   baseAngle + i * sector + (Math.random() - 0.5) * sector * 0.28,
+      rF:    0.82 + Math.random() * 0.14,
+      freq:  1 + Math.floor(Math.random() * 2),
+      phase: Math.random() * Math.PI * 2,
+      ampF:  Math.min(0.10 + level * 0.018, Math.PI / n * 0.42),
+      animal: pool[i]
+    });
+  }
+
+  layout = {
+    n,
+    items,
+    correct: Math.floor(Math.random() * n),
+    deco: makeDeco()
+  };
+  computeGeometry();
+}
+
+function computeGeometry(){
+  cx = W / 2;
+  cy = H / 2;
+  R  = Math.min(W * 0.35, H * 0.30);
+
+  paths = [];
+  animals = [];
+
+  layout.items.forEach((it, i) => {
+    const dx = Math.cos(it.ang), dy = Math.sin(it.ang);
+    const px = -dy, py = dx;
+    const amp = it.ampF * R;
+    const r   = it.rF * R;
+    const steps = 48;
+    const pts = [];
+
+    for (let s = 0; s <= steps; s++){
+      const t = s / steps;
+      const wob = amp * Math.sin(Math.PI * t) * Math.sin(2 * Math.PI * it.freq * t + it.phase);
+      const rr = r * t;
+      pts.push({
+        x: cx + dx * rr + px * wob,
+        y: cy + dy * rr + py * wob
+      });
+    }
+    paths.push(pts);
+    const last = pts[pts.length - 1];
+    animals.push({ x: last.x, y: last.y, e: it.animal.e, n: it.animal.n, index: i });
+  });
+}
+
+/* ---------- Размеры ---------- */
+function resize(){
+  const rect = document.getElementById('game-wrap').getBoundingClientRect();
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const w = rect.width, h = rect.height;
+  if (Math.abs(w - W) < 2 && Math.abs(h - H) < 2) return;
+
+  W = w; H = h;
+  cv.width  = Math.floor(W * dpr);
+  cv.height = Math.floor(H * dpr);
+  cv.style.width  = W + 'px';
+  cv.style.height = H + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  if (layout) computeGeometry();
+}
+
+/* =========================================================
+   ОТРИСОВКА
+   ========================================================= */
+function strokePoly(pts, width){
+  if (!pts || pts.length < 2) return;
+  ctx.lineWidth = width;
+  ctx.beginPath();
+  ctx.moveTo(pts[0].x, pts[0].y);
+  for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+  ctx.stroke();
+}
+
+function drawDeco(){
+  const k = Math.min(W, H) / 400;
+  for (const o of layout.deco){
+    const x = o.x * W, y = o.y * H, s = o.s * k;
+    if (o.type === 'grass'){
+      ctx.strokeStyle = 'rgba(35,85,25,0.28)';
+      ctx.lineWidth = 2 * s;
+      ctx.lineCap = 'round';
+      for (let i = -1; i <= 1; i++){
+        ctx.beginPath();
+        ctx.moveTo(x + i * 4 * s, y);
+        ctx.quadraticCurveTo(x + i * 7 * s, y - 7 * s, x + i * 10 * s, y - 13 * s);
+        ctx.stroke();
+      }
+    } else if (o.type === 'flower'){
+      ctx.fillStyle = 'rgba(255,255,255,0.55)';
+      for (let i = 0; i < 5; i++){
+        const a = i / 5 * Math.PI * 2;
+        ctx.beginPath();
+        ctx.arc(x + Math.cos(a) * 3.4 * s, y + Math.sin(a) * 3.4 * s, 2.4 * s, 0, 7);
+        ctx.fill();
+      }
+      ctx.fillStyle = 'rgba(255,210,80,0.75)';
+      ctx.beginPath(); ctx.arc(x, y, 2.2 * s, 0, 7); ctx.fill();
+    } else {
+      ctx.fillStyle = 'rgba(45,105,35,0.30)';
+      ctx.beginPath(); ctx.arc(x,        y,        9 * s, 0, 7); ctx.fill();
+      ctx.beginPath(); ctx.arc(x - 7*s,  y + 2*s,  6 * s, 0, 7); ctx.fill();
+      ctx.beginPath(); ctx.arc(x + 7*s,  y + 2*s,  6 * s, 0, 7); ctx.fill();
+    }
+  }
+}
+
+function render(now){
+  const t = now / 1000;
+
+  // фон — поляна
+  const g = ctx.createRadialGradient(cx, cy, R * 0.1, cx, cy, Math.max(W, H) * 0.85);
+  g.addColorStop(0,   '#a9e070');
+  g.addColorStop(0.55,'#7cc24c');
+  g.addColorStop(1,   '#437f2c');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, W, H);
+
+  drawDeco();
+
+  // тропинки
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+
+  ctx.strokeStyle = 'rgba(80,52,26,0.38)';
+  for (const p of paths) strokePoly(p, 27);
+
+  ctx.strokeStyle = '#e9cb98';
+  for (const p of paths) strokePoly(p, 21);
+
+  ctx.strokeStyle = 'rgba(255,255,255,0.30)';
+  for (const p of paths) strokePoly(p, 6);
+
+  // подсветка правильной тропы после победы
+  if (winFlash && now - winFlash < 900){
+    const a = 1 - (now - winFlash) / 900;
+    ctx.strokeStyle = `rgba(80,220,90,${0.85 * a})`;
+    ctx.shadowColor = 'rgba(80,255,100,0.9)';
+    ctx.shadowBlur = 22 * a;
+    strokePoly(paths[layout.correct], 16);
+    ctx.shadowBlur = 0;
+  }
+
+  // стартовая площадка
+  ctx.fillStyle = 'rgba(255,240,190,0.55)';
+  ctx.beginPath(); ctx.arc(cx, cy, Math.min(W,H) * 0.085, 0, 7); ctx.fill();
+
+  // животные
+  const esz = Math.max(26, Math.min(W, H) * 0.085);
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.font = `${esz}px "Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji",serif`;
+  animals.forEach((a, i) => {
+    const bob = Math.sin(t * 2 + i * 1.8) * 3;
+    ctx.save();
+    ctx.shadowColor = 'rgba(0,0,0,0.28)';
+    ctx.shadowBlur = 8;
+    ctx.shadowOffsetY = 3;
+    ctx.fillText(a.e, a.x, a.y + bob);
+    ctx.restore();
+  });
+
+  // охотник
+  const hb = Math.sin(t * 2.4) * 2.5;
+  ctx.save();
+  ctx.shadowColor = 'rgba(0,0,0,0.3)';
+  ctx.shadowBlur = 9;
+  ctx.shadowOffsetY = 3;
+  ctx.font = `${esz * 1.25}px "Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji",serif`;
+  ctx.fillText('🤠', cx, cy + hb);
+  ctx.restore();
+
+  // линия игрока
+  if (stroke.length > 1){
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = 'rgba(255,120,40,0.35)';
+    strokePoly(stroke, 13);
+    ctx.strokeStyle = '#ff5a1f';
+    strokePoly(stroke, 7);
+    ctx.strokeStyle = 'rgba(255,220,150,0.9)';
+    strokePoly(stroke, 2.5);
+  }
+
+  requestAnimationFrame(render);
+}
+
+/* =========================================================
+   ЛОГИКА ИГРЫ
+   ========================================================= */
+function minDistPts(p, arr){
+  let m = Infinity;
+  for (let i = 0; i < arr.length; i++){
+    const dx = p.x - arr[i].x, dy = p.y - arr[i].y;
+    const d = dx * dx + dy * dy;
+    if (d < m) m = d;
+  }
+  return Math.sqrt(m);
+}
+
+function f1Score(drawn, path, tol){
+  let near = 0;
+  for (const d of drawn) if (minDistPts(d, path) <= tol) near++;
+  const precision = near / drawn.length;
+
+  let cov = 0;
+  for (const p of path) if (minDistPts(p, drawn) <= tol) cov++;
+  const recall = cov / path.length;
+
+  if (precision + recall === 0) return 0;
+  return 2 * precision * recall / (precision + recall);
+}
+
+function evaluateStroke(){
+  if (phase !== 'play') return;
+
+  if (stroke.length < 6){
+    toast('Веди линию от охотника 🏹');
+    stroke.length = 0;
+    return;
+  }
+
+  const start = stroke[0];
+  if (Math.hypot(start.x - cx, start.y - cy) > R * 0.6){
+    toast('Начинай путь от охотника 🤠');
+    stroke.length = 0;
+    return;
+  }
+
+  const end = stroke[stroke.length - 1];
+  let nearAnimal = false;
+  const reach = Math.min(W, H) * 0.13;
+  for (const a of animals){
+    if (Math.hypot(end.x - a.x, end.y - a.y) < reach){ nearAnimal = true; break; }
+  }
+  if (!nearAnimal){
+    toast('Доведи тропинку до самой добычи!');
+    stroke.length = 0;
+    return;
+  }
+
+  // прореживаем нарисованную линию
+  const drawn = stroke.filter((_, i) => i % 2 === 0 || i === stroke.length - 1);
+  const tol = Math.max(20, Math.min(W, H) * 0.055);
+
+  let best = -1, bestScore = 0;
+  paths.forEach((p, i) => {
+    const s = f1Score(drawn, p, tol);
+    if (s > bestScore){ bestScore = s; best = i; }
+  });
+
+  if (best === layout.correct && bestScore >= 0.5){
+    onWin();
+  } else {
+    onLoseLife();
+  }
+}
+
+/* ---------- Исходы ---------- */
+function onWin(){
+  phase = 'result';
+  winFlash = performance.now();
+  sfxWin();
+  hideHint();
+
+  const passed = state.level;
+  state.level += 1;
+  saveState();
+  updateHUD();
+
+  setTimeout(() => {
+    showOverlay(
+      '🎯',
+      'Добыча поймана!',
+      `Уровень ${passed} пройден. Впереди ещё больше тропинок!`,
+      [{ label: 'Дальше ▶', cls: '', action: () => { hideOverlay(); startLevel(); } }]
+    );
+  }, 820);
+}
+
+function onLoseLife(){
+  phase = 'result';
+  sfxLose();
+  stroke.length = 0;
+  state.lives = Math.max(0, state.lives - 1);
+  saveState();
+  updateHUD();
+
+  setTimeout(() => {
+    if (state.lives <= 0){
+      showGameOver();
+    } else {
+      showOverlay(
+        '🍃',
+        'Ты ещё найдёшь свою дорогу',
+        `Не та тропинка. Осталось жизней: ${state.lives}`,
+        [
+          { label: 'Попробовать снова', cls: '', action: () => { hideOverlay(); restartLevel(); } },
+          { label: '🎁 Получить ещё жизни', cls: 'ghost', action: openBonusPanel }
+        ]
+      );
+    }
+  }, 520);
+}
+
+function showGameOver(){
+  phase = 'over';
+  showOverlay(
+    '💤',
+    'Жизни закончились',
+    'Завтра придёт 3 новые жизни. А пока — выполни задание и получи бонусную!',
+    [
+      ...bonusButtons(),
+      { label: 'Закрыть', cls: 'ghost', action: hideOverlay }
+    ]
+  );
+}
+
+/* ---------- Управление уровнем ---------- */
+function startLevel(){
+  buildLevel(state.level);
+  stroke.length = 0;
+  winFlash = 0;
+  phase = 'play';
+  updateHUD();
+  updateTarget();
+  if (state.level === 1 && !localStorage.getItem(STORE_KEY + '_hint')){
+    showHint();
+    try { localStorage.setItem(STORE_KEY + '_hint', '1'); } catch(e){}
+  }
+}
+
+function restartLevel(){
+  buildLevel(state.level);
+  stroke.length = 0;
+  winFlash = 0;
+  phase = 'play';
+  updateHUD();
+  updateTarget();
+}
+
+/* =========================================================
+   HUD / UI
+   ========================================================= */
+function updateHUD(){
+  document.getElementById('lvl').textContent = state.level;
+  const box = document.getElementById('lives');
+  box.innerHTML = '';
+  const shown = Math.min(state.lives, 5);
+  for (let i = 0; i < shown; i++){
+    const s = document.createElement('span');
+    s.textContent = '❤️';
+    box.appendChild(s);
+  }
+  if (state.lives > 5){
+    const b = document.createElement('b');
+    b.textContent = '×' + state.lives;
+    box.appendChild(b);
+  }
+  if (state.lives === 0){
+    const b = document.createElement('b');
+    b.textContent = 'нет';
+    box.appendChild(b);
+  }
+}
+
+function updateTarget(){
+  const a = layout.items[layout.correct].animal;
+  document.getElementById('target').innerHTML =
+    `<span style="font-size:20px">${a.e}</span> ${a.n}`;
+}
+
+let toastTimer = null;
+function toast(msg){
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.remove('hidden');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.add('hidden'), 1800);
+}
+
+let hintTimer = null;
+function showHint(){
+  const el = document.getElementById('hint');
+  el.classList.remove('hide');
+  clearTimeout(hintTimer);
+  hintTimer = setTimeout(() => el.classList.add('hide'), 6000);
+}
+function hideHint(){
+  clearTimeout(hintTimer);
+  document.getElementById('hint').classList.add('hide');
+}
+
+function showOverlay(emoji, title, text, buttons){
+  document.getElementById('ov-emoji').textContent = emoji;
+  document.getElementById('ov-title').textContent = title;
+  document.getElementById('ov-text').textContent = text;
+
+  const box = document.getElementById('ov-buttons');
+  box.innerHTML = '';
+  buttons.forEach(b => {
+    const el = document.createElement('button');
+    el.className = 'btn ' + (b.cls || '');
+    el.innerHTML = b.html || b.label;
+    el.onclick = () => { sfxPop(); b.action(); };
+    box.appendChild(el);
+  });
+
+  document.getElementById('overlay').classList.remove('hidden');
+}
+function hideOverlay(){
+  document.getElementById('overlay').classList.add('hidden');
+}
+
+/* =========================================================
+   БОНУСЫ / VK
+   ========================================================= */
+function bonusButtons(){
+  return BONUSES.map(b => {
+    const used = !!state.bonuses[b.key];
+    return {
+      cls: 'bonus' + (used ? ' used' : ''),
+      html: `<span class="bi">${b.icon}</span>
+             <span class="bt"><span>${b.label}</span>
+             <em>${used ? '✓ уже получено сегодня' : b.hint}</em></span>`,
+      action: () => claimBonus(b.key)
+    };
+  });
+}
+
+function openBonusPanel(){
+  showOverlay(
+    '🎁',
+    'Бонусные жизни',
+    'Выполни задание — получи +1 жизнь. Каждое задание доступно один раз в день.',
+    [
+      ...bonusButtons(),
+      { label: 'Закрыть', cls: 'ghost', action: () => {
+          hideOverlay();
+          if (phase === 'over' && state.lives <= 0) showGameOver();
+      }}
+    ]
+  );
+}
+
+function vkSend(method, params){
+  return new Promise((resolve, reject) => {
+    if (window.vkBridge && typeof vkBridge.send === 'function'){
+      vkBridge.send(method, params).then(resolve).catch(reject);
+    } else {
+      // демо-режим вне ВКонтакте
+      setTimeout(() => resolve({ demo: true }), 350);
+    }
+  });
+}
+
+async function doVkAction(key){
+  if (key === 'sub')     return vkSend('VKWebAppJoinGroup', { group_id: GROUP_ID });
+  if (key === 'comment') return vkSend('VKWebAppShowWallPostBox', {
+                            message: 'Играю в «Охоту в лабиринте» 🏹 Найди свою тропу!'
+                          });
+  if (key === 'invite')  return vkSend('VKWebAppShowInviteBox', {});
+  if (key === 'msg')     return vkSend('VKWebAppAllowMessagesFromGroup', {
+                            group_id: GROUP_ID, key: 'hunt_bonus'
+                          });
+}
+
+async function claimBonus(key){
+  if (state.bonuses[key]){ toast('Уже получено сегодня'); return; }
+  try {
+    await doVkAction(key);
+  } catch (e){
+    toast('Действие не выполнено 🤷');
+    return;
+  }
+
+  state.bonuses[key] = true;
+  state.lives = Math.min(MAX_LIVES, state.lives + 1);
+  saveState();
+  updateHUD();
+  toast('+1 жизнь! ❤️');
+  sfxWin();
+
+  if (phase === 'over'){
+    hideOverlay();
+    restartLevel();
+  } else {
+    openBonusPanel();
+  }
+}
+
+/* =========================================================
+   ВВОД
+   ========================================================= */
+function ptFromEvent(e){
+  const r = cv.getBoundingClientRect();
+  return { x: e.clientX - r.left, y: e.clientY - r.top };
+}
+
+cv.addEventListener('pointerdown', e => {
+  initAudio();
+  if (state.sound) startMusic();
+  if (phase !== 'play') return;
+
+  cv.setPointerCapture(e.pointerId);
+  drawing = true;
+  stroke.length = 0;
+  stroke.push(ptFromEvent(e));
+  hideHint();
+  e.preventDefault();
+});
+
+cv.addEventListener('pointermove', e => {
+  if (!drawing) return;
+  const p = ptFromEvent(e);
+  const last = stroke[stroke.length - 1];
+  if (!last || Math.hypot(p.x - last.x, p.y - last.y) > 4){
+    if (stroke.length < 500) stroke.push(p);
+  }
+  e.preventDefault();
+});
+
+function endStroke(e){
+  if (!drawing) return;
+  drawing = false;
+  evaluateStroke();
+}
+cv.addEventListener('pointerup', endStroke);
+cv.addEventListener('pointercancel', e => { drawing = false; stroke.length = 0; });
+
+document.addEventListener('gesturestart', e => e.preventDefault());
+document.addEventListener('contextmenu', e => e.preventDefault());
+
+/* =========================================================
+   КНОПКИ HUD
+   ========================================================= */
+document.getElementById('btn-bonus').addEventListener('click', () => {
+  sfxPop();
+  if (phase === 'over') showGameOver();
+  else openBonusPanel();
+});
+
+document.getElementById('btn-sound').addEventListener('click', () => {
+  state.sound = !state.sound;
+  saveState();
+  document.getElementById('btn-sound').textContent = state.sound ? '🔊' : '🔇';
+  if (state.sound){ initAudio(); startMusic(); }
+  else stopMusic();
+});
+
+/* =========================================================
+   СТАРТ
+   ========================================================= */
+function boot(){
+  loadState();
+  resize();
+  startLevel();
+
+  document.getElementById('btn-sound').textContent = state.sound ? '🔊' : '🔇';
+
+  window.addEventListener('resize', () => {
+    resize();
+    if (phase === 'play') computeGeometry();
+  });
+  window.addEventListener('orientationchange', () => setTimeout(() => { resize(); computeGeometry(); }, 250));
+
+  requestAnimationFrame(render);
+
+  // инициализация VK Mini App
+  try {
+    if (window.vkBridge && typeof vkBridge.send === 'function'){
+      vkBridge.send('VKWebAppInit', {});
+    }
+  } catch(e){}
+}
+
+boot();
+</script>
+</body>
+</html>
