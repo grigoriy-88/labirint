@@ -11,6 +11,8 @@
     user-select: none; -webkit-user-select: none; }
   #game-wrap { position: fixed; inset: 0; overflow: hidden; }
   canvas { display: block; touch-action: none; }
+
+  /* HUD */
   #hud { position: absolute; top: 0; left: 0; right: 0; display: flex; justify-content: space-between;
     align-items: center; padding: calc(8px + env(safe-area-inset-top)) 12px 8px; gap: 8px;
     pointer-events: none; z-index: 5; }
@@ -25,8 +27,10 @@
     box-shadow: 0 3px 0 rgba(0,0,0,.18); display: flex; align-items: center; justify-content: center;
     transition: transform .08s; font-family: inherit; color: #5a3a1a; padding: 0; }
   .icon-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(0,0,0,.18); }
-  #btn-exit { background: #ff7a5a; color: #fff; box-shadow: 0 3px 0 #b8452a; font-weight: 900; font-size: 16px; }
-  #btn-exit:active { box-shadow: 0 1px 0 #b8452a; }
+  #btn-menu { background: #6a9cff; color: #fff; box-shadow: 0 3px 0 #3b6bd8; font-weight: 900; font-size: 18px; }
+  #btn-menu:active { box-shadow: 0 1px 0 #3b6bd8; }
+
+  /* Target bar */
   #target-bar { position: absolute; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom));
     transform: translateX(-50%); z-index: 5; background: rgba(255,255,255,.94);
     border-radius: 999px; padding: 8px 20px; font-size: 16px; font-weight: 700; color: #5a3a1a;
@@ -34,6 +38,8 @@
     white-space: nowrap; pointer-events: none; }
   #target-bar .tb-label { opacity: .6; font-weight: 600; font-size: 14px; }
   #target { display: flex; align-items: center; gap: 6px; font-size: 17px; }
+
+  /* Hint / Toast */
   #hint { position: absolute; left: 50%; bottom: calc(74px + env(safe-area-inset-bottom));
     transform: translateX(-50%); z-index: 5; background: rgba(40,25,10,.78); color: #ffe9c0;
     border-radius: 14px; padding: 8px 16px; font-size: 13px; text-align: center; max-width: 82vw;
@@ -44,20 +50,21 @@
     border-radius: 999px; padding: 10px 20px; font-size: 14px; font-weight: 700;
     white-space: nowrap; transition: opacity .25s; pointer-events: none; }
   #toast.hidden { opacity: 0; }
-  #overlay { position: absolute; inset: 0; z-index: 30; display: flex; align-items: center;
-    justify-content: center; background: rgba(30,20,10,.55);
-    backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); padding: 18px;
-    transition: opacity .22s; }
-  #overlay.hidden { opacity: 0; pointer-events: none; }
+
+  /* Screens */
+  .screen { position: absolute; inset: 0; z-index: 30; display: none;
+    align-items: center; justify-content: center; background: rgba(30,20,10,.55);
+    backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); padding: 18px; }
+  .screen.active { display: flex; }
   .card { background: linear-gradient(#fffaf0,#ffe9c0); border: 4px solid #ffd28a;
     border-radius: 28px; padding: 22px 18px 18px; width: 100%; max-width: 340px;
     max-height: 88vh; overflow-y: auto; text-align: center;
     box-shadow: 0 12px 0 rgba(0,0,0,.22); animation: pop .3s cubic-bezier(.2,1.5,.5,1); }
   @keyframes pop { from { transform: scale(.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
   .ov-emoji { font-size: 52px; line-height: 1; margin-bottom: 6px; }
-  #ov-title { margin: 0 0 8px; font-size: 22px; color: #4a2c10; line-height: 1.2; }
-  #ov-text { margin: 0 0 16px; font-size: 14px; color: #7a5a35; line-height: 1.45; }
-  .ov-buttons { display: flex; flex-direction: column; gap: 9px; }
+  .card h2 { margin: 0 0 8px; font-size: 22px; color: #4a2c10; line-height: 1.2; }
+  .card p { margin: 0 0 16px; font-size: 14px; color: #7a5a35; line-height: 1.45; }
+  .btn-row { display: flex; flex-direction: column; gap: 9px; }
   .btn { border: none; border-radius: 999px; padding: 13px 18px; font-size: 16px; font-weight: 700;
     cursor: pointer; font-family: inherit; color: #fff; background: linear-gradient(#8fd35a,#5aa62e);
     box-shadow: 0 4px 0 #3d7a1c; transition: transform .08s, box-shadow .08s;
@@ -69,48 +76,108 @@
   .btn.bonus.used { opacity: .5; filter: grayscale(.6); }
   .btn.ghost { background: #e8dcc8; color: #7a5a35; box-shadow: 0 4px 0 #c4b39a; font-size: 14px; }
   .btn.ghost:active { box-shadow: 0 1px 0 #c4b39a; }
+  .btn.small { font-size: 14px; padding: 10px 14px; }
   .btn .bi { font-size: 20px; }
   .btn .bt { display: flex; flex-direction: column; align-items: flex-start; flex: 1; text-align: left; }
   .btn .bt span { font-size: 14px; font-weight: 700; }
   .btn .bt em { font-style: normal; font-size: 11px; opacity: .65; font-weight: 600; }
+  .menu-title { font-size: 28px; font-weight: 900; color: #4a2c10; margin: 0 0 4px; }
+  .menu-sub { font-size: 14px; color: #7a5a35; margin: 0 0 20px; }
+  .back-btn { margin-top: 4px; }
 </style>
 </head>
 <body>
 <div id="game-wrap">
   <canvas id="cv"></canvas>
+
   <div id="hud">
     <div class="chip">🏆 Уровень <b id="lvl">1</b></div>
     <div class="hud-right">
       <div class="chip lives" id="lives"></div>
-      <button class="icon-btn" id="btn-bonus">＋❤</button>
-      <button class="icon-btn" id="btn-sound">🔊</button>
-      <button class="icon-btn" id="btn-exit" title="Выход">✕</button>
+      <button class="icon-btn" id="btn-menu" title="Меню">☰</button>
     </div>
   </div>
+
   <div id="target-bar">
     <span class="tb-label">Цель:</span>
     <span id="target">🐰 Заяц</span>
   </div>
-  <div id="hint">Веди палец по белой тропинке от 🤠 к добыче, не задевая траву</div>
+
+  <div id="hint">Веди палец по белой тропинке от 🤠 к добыче, не задевая траву и пчёл</div>
   <div id="toast" class="hidden"></div>
-  <div id="overlay" class="hidden">
+
+  <!-- Главное меню -->
+  <div class="screen" id="screen-main">
     <div class="card">
-      <div class="ov-emoji" id="ov-emoji">🎯</div>
-      <h2 id="ov-title"></h2>
-      <p id="ov-text"></p>
-      <div class="ov-buttons" id="ov-buttons"></div>
+      <div class="ov-emoji">🏹</div>
+      <h1 class="menu-title">Охота в лабиринте</h1>
+      <p class="menu-sub">Найди свою тропу к добыче!</p>
+      <div class="btn-row">
+        <button class="btn" id="menu-play">▶ Играть</button>
+        <button class="btn ghost small" id="menu-settings">⚙️ Настройки</button>
+        <button class="btn ghost small" id="menu-social">👥 Социальные механики</button>
+        <button class="btn ghost small" id="menu-about">ℹ️ Об игре</button>
+        <button class="btn ghost small" id="menu-exit">🚪 Выход</button>
+      </div>
     </div>
   </div>
+
+  <!-- Настройки -->
+  <div class="screen" id="screen-settings">
+    <div class="card">
+      <div class="ov-emoji">⚙️</div>
+      <h2>Настройки</h2>
+      <p>Настрой звук и управление.</p>
+      <div class="btn-row">
+        <button class="btn ghost small" id="set-sound">🔊 Звук: вкл</button>
+      </div>
+      <button class="btn ghost small back-btn" data-back>← Назад</button>
+    </div>
+  </div>
+
+  <!-- Соцмеханики -->
+  <div class="screen" id="screen-social">
+    <div class="card">
+      <div class="ov-emoji">👥</div>
+      <h2>Социальные механики</h2>
+      <p>Получи бонусные жизни за действия. Всё добровольно — играть можно и без них.</p>
+      <div class="btn-row" id="social-list"></div>
+      <button class="btn ghost small back-btn" data-back>← Назад</button>
+    </div>
+  </div>
+
+  <!-- Об игре -->
+  <div class="screen" id="screen-about">
+    <div class="card">
+      <div class="ov-emoji">ℹ️</div>
+      <h2>Об игре</h2>
+      <p>Веди линию от охотника к добыче по белым тропинкам. Не задевай траву и пчёл. С каждым уровнем лабиринт сложнее, а животных больше.<br><br>Жизни восстанавливаются каждый день. Бесплатную жизнь можно взять раз в 30 минут.</p>
+      <button class="btn ghost small back-btn" data-back>← Назад</button>
+    </div>
+  </div>
+
+  <!-- Game Over -->
+  <div class="screen" id="screen-gameover">
+    <div class="card">
+      <div class="ov-emoji">💤</div>
+      <h2>Жизни закончились</h2>
+      <p id="gameover-text">Подожди немного или получи бонусную жизнь.</p>
+      <div class="btn-row" id="gameover-buttons"></div>
+    </div>
+  </div>
+
 </div>
+
 <script src="https://unpkg.com/@vkontakte/vk-bridge/dist/browser.min.js"></script>
 <script>
 // ============================================================
 // НАСТРОЙКИ
 // ============================================================
-const GROUP_ID    = 228373135;   // <-- ID вашей группы ВК
+const GROUP_ID    = 123456789;   // <-- замени на ID своей группы
 const MAX_LIVES   = 9;
 const DAILY_LIVES = 3;
-const STORE_KEY   = 'hunt_maze_v2';
+const FREE_LIFE_COOLDOWN = 30 * 60 * 1000; // 30 минут
+const STORE_KEY   = 'hunt_maze_v3';
 
 // ============================================================
 // ЖИВОТНЫЕ
@@ -133,15 +200,30 @@ const BONUSES = [
 // СОСТОЯНИЕ
 // ============================================================
 const today = () => new Date().toISOString().slice(0,10);
-let state = { day: today(), level: 1, lives: DAILY_LIVES, bonuses: {}, sound: true };
+let state = {
+  day: today(),
+  level: 1,
+  lives: DAILY_LIVES,
+  bonuses: {},
+  sound: true,
+  lastFreeLife: 0,
+};
 
 function loadState(){
   let p = null;
   try { p = JSON.parse(localStorage.getItem(STORE_KEY) || 'null'); } catch(e){}
-  if (p && typeof p === 'object'){ state = Object.assign(state, p); state.bonuses = state.bonuses || {}; }
-  if (state.day !== today()){ state.day = today(); state.lives = DAILY_LIVES; state.bonuses = {}; }
+  if (p && typeof p === 'object'){
+    state = Object.assign(state, p);
+    state.bonuses = state.bonuses || {};
+  }
+  if (state.day !== today()){
+    state.day = today();
+    state.lives = DAILY_LIVES;
+    state.bonuses = {};
+  }
   if (typeof state.lives !== 'number') state.lives = DAILY_LIVES;
   if (typeof state.level !== 'number' || state.level < 1) state.level = 1;
+  if (typeof state.lastFreeLife !== 'number') state.lastFreeLife = 0;
 }
 function saveState(){ try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch(e){} }
 
@@ -194,7 +276,7 @@ function sfxLose(){ if (!actx) return; const n = actx.currentTime;
 function sfxPop(){ if (actx) playTone(880, actx.currentTime, 0.09, 0.05, 'square'); }
 
 // ============================================================
-// CANVAS + СОСТОЯНИЕ ЛАБИРИНТА
+// CANVAS
 // ============================================================
 const cv = document.getElementById('cv');
 const ctx = cv.getContext('2d');
@@ -205,10 +287,11 @@ let startPt = null, endPt = null;
 let targetAnimal = null;
 let stroke = [];
 let drawing = false;
-let phase = 'play';      // play | result | over
+let phase = 'play';
 let invalidStroke = false;
 let winFlash = 0;
 let solutionPath = [];
+let enemies = [];
 
 function resize(){
   const rect = document.getElementById('game-wrap').getBoundingClientRect();
@@ -255,12 +338,11 @@ function makeMaze(cols, rows){
 }
 
 function gridForLevel(level){
-  if (level <= 1) return {cols: 4, rows: 5};
-  if (level <= 2) return {cols: 4, rows: 6};
-  if (level <= 4) return {cols: 5, rows: 6};
-  if (level <= 6) return {cols: 5, rows: 7};
-  if (level <= 9) return {cols: 6, rows: 7};
-  return {cols: 6, rows: 8};
+  if (level <= 2) return {cols: 5, rows: 7};
+  if (level <= 4) return {cols: 6, rows: 8};
+  if (level <= 7) return {cols: 7, rows: 9};
+  if (level <= 11) return {cols: 8, rows: 10};
+  return {cols: 8, rows: 10};
 }
 
 function buildLevel(level){
@@ -277,6 +359,29 @@ function buildLevel(level){
   maze = { cols, rows, cells, startX, startY, endX, endY };
   computeGeometry();
   solutionPath = findSolution();
+
+  // Враги: с 3 уровня
+  enemies = [];
+  if (level >= 3){
+    const count = Math.min(1 + Math.floor((level-3)/3), 3);
+    for (let i = 0; i < count; i++){
+      // случайный сегмент, не стартовый и не конечный
+      const segs = segments.filter(s => {
+        const mx = (s.x1 + s.x2)/2, my = (s.y1 + s.y2)/2;
+        return Math.hypot(mx - startPt.x, my - startPt.y) > maze.cell * 2
+            && Math.hypot(mx - endPt.x, my - endPt.y) > maze.cell * 2;
+      });
+      if (!segs.length) continue;
+      const s = segs[Math.floor(Math.random()*segs.length)];
+      const t = Math.random();
+      enemies.push({
+        x1: s.x1, y1: s.y1, x2: s.x2, y2: s.y2,
+        t: t,
+        speed: 0.0015 + level * 0.0003,
+        dir: Math.random() < 0.5 ? 1 : -1,
+      });
+    }
+  }
 
   stroke.length = 0;
   invalidStroke = false;
@@ -315,7 +420,7 @@ function cellCenter(gx, gy){
 }
 
 // ============================================================
-// СЕГМЕНТЫ КОРИДОРОВ
+// СЕГМЕНТЫ
 // ============================================================
 let segments = [];
 
@@ -359,8 +464,15 @@ function pointInCorridor(px, py){
   return false;
 }
 
+function pointNearEnemy(px, py){
+  for (const e of enemies){
+    if (Math.hypot(px - e.x, py - e.y) < maze.corridor * 0.65) return true;
+  }
+  return false;
+}
+
 // ============================================================
-// ПОИСК ПРАВИЛЬНОГО ПУТИ (BFS)
+// ПОИСК ПУТИ
 // ============================================================
 function findSolution(){
   const { cols, rows, cells, startX, startY, endX, endY } = maze;
@@ -515,6 +627,25 @@ function drawStartEnd(t){
   ctx.restore();
 }
 
+function drawEnemies(){
+  for (const e of enemies){
+    e.t += e.speed * e.dir;
+    if (e.t > 1){ e.t = 1; e.dir = -1; }
+    if (e.t < 0){ e.t = 0; e.dir = 1; }
+    e.x = e.x1 + (e.x2 - e.x1) * e.t;
+    e.y = e.y1 + (e.y2 - e.y1) * e.t;
+
+    const sz = Math.max(18, maze.cell * 0.5);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = `${sz}px "Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji",serif`;
+    ctx.save();
+    ctx.shadowColor = 'rgba(0,0,0,0.3)'; ctx.shadowBlur = 6; ctx.shadowOffsetY = 2;
+    ctx.fillText('🐝', e.x, e.y);
+    ctx.restore();
+  }
+}
+
 function drawStroke(){
   if (stroke.length < 2) return;
   const col = invalidStroke ? '#ff3b30' : '#ff5a1f';
@@ -547,6 +678,7 @@ function render(now){
     drawCorridors();
     drawWinFlash(now);
     drawStartEnd(t);
+    drawEnemies();
     drawStroke();
   }
   requestAnimationFrame(render);
@@ -577,13 +709,19 @@ function evaluateStroke(){
   const reachEnd = endDist < maze.cell * 0.75;
 
   let offCount = 0;
+  let enemyHit = false;
   for (const p of stroke){
     if (!pointInCorridor(p.x, p.y)) offCount++;
+    if (pointNearEnemy(p.x, p.y)) enemyHit = true;
   }
   const accuracy = 1 - offCount / stroke.length;
 
   if (!reachEnd){
     onLoseLife('Доведи линию до самой добычи!');
+    return;
+  }
+  if (enemyHit){
+    onLoseLife('Пчела ужалила! Обходи их стороной 🐝');
     return;
   }
   if (accuracy < 0.93){
@@ -631,7 +769,7 @@ function onLoseLife(msg){
       msg + ` Осталось жизней: ${state.lives}`,
       [
         { label: 'Попробовать снова', cls: '', action: () => { hideOverlay(); restartLevel(); } },
-        { label: '🎁 Получить ещё жизни', cls: 'ghost', action: openBonusPanel }
+        { label: '🎁 Получить бонус', cls: 'ghost', action: openBonusPanel }
       ]
     );
   }, 550);
@@ -639,27 +777,65 @@ function onLoseLife(msg){
 
 function showGameOver(){
   phase = 'over';
-  showOverlay(
-    '💤',
-    'Жизни закончились',
-    'Завтра придёт 3 новые жизни. А пока — выполни задание и получи бонусную!',
-    [
-      ...bonusButtons(),
-      { label: 'Выйти из игры', cls: 'ghost', action: () => {
-          stopMusic();
-          if (window.vkBridge && typeof vkBridge.send === 'function'){
-            vkBridge.send('VKWebAppClose', { status: 'success' }).catch(() => {});
-          }
-      }}
-    ]
-  );
+  const el = document.getElementById('gameover-buttons');
+  el.innerHTML = '';
+  const now = Date.now();
+  const canFree = now - state.lastFreeLife >= FREE_LIFE_COOLDOWN;
+
+  // Кнопка бесплатной жизни
+  const freeBtn = document.createElement('button');
+  freeBtn.className = 'btn';
+  if (canFree){
+    freeBtn.innerHTML = '❤️ Взять бесплатную жизнь';
+    freeBtn.onclick = () => {
+      state.lastFreeLife = now;
+      state.lives = Math.min(MAX_LIVES, state.lives + 1);
+      saveState();
+      updateHUD();
+      sfxWin();
+      hideOverlay();
+      restartLevel();
+      showScreen('screen-main');
+    };
+  } else {
+    const left = Math.ceil((FREE_LIFE_COOLDOWN - (now - state.lastFreeLife)) / 60000);
+    freeBtn.innerHTML = `⏳ Бесплатная жизнь через ${left} мин`;
+    freeBtn.disabled = true;
+    freeBtn.style.opacity = '.5';
+    freeBtn.style.filter = 'grayscale(.5)';
+  }
+  el.appendChild(freeBtn);
+
+  // Соцмеханики (опционально)
+  const socBtn = document.createElement('button');
+  socBtn.className = 'btn ghost small';
+  socBtn.innerHTML = '👥 Социальные механики';
+  socBtn.onclick = () => { hideOverlay(); showScreen('screen-social'); };
+  el.appendChild(socBtn);
+
+  // В меню
+  const menuBtn = document.createElement('button');
+  menuBtn.className = 'btn ghost small';
+  menuBtn.innerHTML = '🏠 В главное меню';
+  menuBtn.onclick = () => { hideOverlay(); showScreen('screen-main'); };
+  el.appendChild(menuBtn);
+
+  document.getElementById('gameover-text').textContent =
+    `Жизней: 0. Восстанови бесплатную или выполни бонусное задание.`;
+
+  showScreen('screen-gameover');
 }
 
+// ============================================================
+// УПРАВЛЕНИЕ УРОВНЕМ
+// ============================================================
 function startLevel(){
   buildLevel(state.level);
   rebuildSegments();
   updateHUD();
   updateTarget();
+  hideOverlay();
+  hideAllScreens();
   if (state.level === 1 && !localStorage.getItem(STORE_KEY + '_hint')){
     showHint();
     try { localStorage.setItem(STORE_KEY + '_hint', '1'); } catch(e){}
@@ -670,6 +846,8 @@ function restartLevel(){
   rebuildSegments();
   updateHUD();
   updateTarget();
+  hideOverlay();
+  hideAllScreens();
 }
 
 // ============================================================
@@ -713,22 +891,37 @@ function hideHint(){
   document.getElementById('hint').classList.add('hide');
 }
 
-function showOverlay(emoji, title, text, buttons){
-  document.getElementById('ov-emoji').textContent = emoji;
-  document.getElementById('ov-title').textContent = title;
-  document.getElementById('ov-text').textContent = text;
-  const box = document.getElementById('ov-buttons');
-  box.innerHTML = '';
-  buttons.forEach(b => {
-    const el = document.createElement('button');
-    el.className = 'btn ' + (b.cls || '');
-    el.innerHTML = b.html || b.label;
-    el.onclick = () => { sfxPop(); b.action(); };
-    box.appendChild(el);
-  });
-  document.getElementById('overlay').classList.remove('hidden');
+// ============================================================
+// ЭКРАНЫ / МЕНЮ
+// ============================================================
+function hideAllScreens(){
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
 }
-function hideOverlay(){ document.getElementById('overlay').classList.add('hidden'); }
+function showScreen(id){
+  hideAllScreens();
+  const el = document.getElementById(id);
+  if (el) el.classList.add('active');
+  if (id !== 'screen-main') stopMusic();
+  else if (state.sound) startMusic();
+}
+function hideOverlay(){ hideAllScreens(); }
+
+function showOverlay(emoji, title, text, buttons){
+  // Используем экран gameover как универсальный для простых сообщений
+  const el = document.getElementById('gameover-buttons');
+  document.querySelector('#screen-gameover .ov-emoji').textContent = emoji;
+  document.querySelector('#screen-gameover h2').textContent = title;
+  document.getElementById('gameover-text').textContent = text;
+  el.innerHTML = '';
+  buttons.forEach(b => {
+    const btn = document.createElement('button');
+    btn.className = 'btn ' + (b.cls || '');
+    btn.innerHTML = b.html || b.label;
+    btn.onclick = () => { sfxPop(); b.action(); };
+    el.appendChild(btn);
+  });
+  showScreen('screen-gameover');
+}
 
 // ============================================================
 // БОНУСЫ
@@ -746,18 +939,21 @@ function bonusButtons(){
   });
 }
 function openBonusPanel(){
-  showOverlay(
-    '🎁',
-    'Бонусные жизни',
-    'Выполни задание — получи +1 жизнь. Каждое доступно один раз в день.',
-    [
-      ...bonusButtons(),
-      { label: 'Закрыть', cls: 'ghost', action: () => {
-          hideOverlay();
-          if (phase === 'over' && state.lives <= 0) showGameOver();
-      }}
-    ]
-  );
+  showScreen('screen-social');
+}
+function renderSocialList(){
+  const el = document.getElementById('social-list');
+  el.innerHTML = '';
+  BONUSES.forEach(b => {
+    const used = !!state.bonuses[b.key];
+    const btn = document.createElement('button');
+    btn.className = 'btn bonus' + (used ? ' used' : '');
+    btn.innerHTML = `<span class="bi">${b.icon}</span>
+             <span class="bt"><span>${b.label}</span>
+             <em>${used ? '✓ уже получено сегодня' : b.hint}</em></span>`;
+    btn.onclick = () => { sfxPop(); claimBonus(b.key); };
+    el.appendChild(btn);
+  });
 }
 
 function vkSend(method, params){
@@ -788,8 +984,11 @@ async function claimBonus(key){
   saveState(); updateHUD();
   toast('+1 жизнь! ❤️');
   sfxWin();
-  if (phase === 'over'){ hideOverlay(); restartLevel(); }
-  else openBonusPanel();
+  renderSocialList();
+  if (state.lives > 0){
+    hideAllScreens();
+    restartLevel();
+  }
 }
 
 // ============================================================
@@ -810,7 +1009,7 @@ cv.addEventListener('pointerdown', e => {
   invalidStroke = false;
   const p = ptFromEvent(e);
   stroke.push(p);
-  if (!pointInCorridor(p.x, p.y)) invalidStroke = true;
+  if (!pointInCorridor(p.x, p.y) || pointNearEnemy(p.x, p.y)) invalidStroke = true;
   hideHint();
   e.preventDefault();
 });
@@ -821,7 +1020,7 @@ cv.addEventListener('pointermove', e => {
   const last = stroke[stroke.length - 1];
   if (!last || Math.hypot(p.x - last.x, p.y - last.y) > 3){
     if (stroke.length < 800) stroke.push(p);
-    if (!pointInCorridor(p.x, p.y)) invalidStroke = true;
+    if (!pointInCorridor(p.x, p.y) || pointNearEnemy(p.x, p.y)) invalidStroke = true;
   }
   e.preventDefault();
 });
@@ -838,20 +1037,23 @@ document.addEventListener('gesturestart', e => e.preventDefault());
 document.addEventListener('contextmenu', e => e.preventDefault());
 
 // ============================================================
-// КНОПКИ HUD
+// КНОПКИ МЕНЮ
 // ============================================================
-document.getElementById('btn-bonus').addEventListener('click', () => {
+document.getElementById('btn-menu').addEventListener('click', () => {
   sfxPop();
-  if (phase === 'over') showGameOver();
-  else openBonusPanel();
+  stopMusic();
+  showScreen('screen-main');
 });
-document.getElementById('btn-sound').addEventListener('click', () => {
-  state.sound = !state.sound;
-  saveState();
-  document.getElementById('btn-sound').textContent = state.sound ? '🔊' : '🔇';
-  if (state.sound){ initAudio(); startMusic(); } else stopMusic();
+
+document.getElementById('menu-play').addEventListener('click', () => {
+  sfxPop();
+  if (state.lives <= 0){ showGameOver(); return; }
+  startLevel();
 });
-document.getElementById('btn-exit').addEventListener('click', () => {
+document.getElementById('menu-settings').addEventListener('click', () => { sfxPop(); showScreen('screen-settings'); });
+document.getElementById('menu-social').addEventListener('click', () => { sfxPop(); renderSocialList(); showScreen('screen-social'); });
+document.getElementById('menu-about').addEventListener('click', () => { sfxPop(); showScreen('screen-about'); });
+document.getElementById('menu-exit').addEventListener('click', () => {
   sfxPop();
   stopMusic();
   if (window.vkBridge && typeof vkBridge.send === 'function'){
@@ -861,6 +1063,17 @@ document.getElementById('btn-exit').addEventListener('click', () => {
   }
 });
 
+document.getElementById('set-sound').addEventListener('click', () => {
+  state.sound = !state.sound;
+  saveState();
+  document.getElementById('set-sound').textContent = state.sound ? '🔊 Звук: вкл' : '🔇 Звук: выкл';
+  if (state.sound){ initAudio(); startMusic(); } else stopMusic();
+});
+
+document.querySelectorAll('[data-back]').forEach(btn => {
+  btn.addEventListener('click', () => { sfxPop(); showScreen('screen-main'); });
+});
+
 // ============================================================
 // СТАРТ
 // ============================================================
@@ -868,9 +1081,9 @@ function boot(){
   loadState();
   resize();
 
-  // ГЛАВНОЕ ИСПРАВЛЕНИЕ: если жизней нет — показываем экран "Жизни закончились",
-  // а не запускаем уровень. Раньше игра стартовала с 0 жизней.
+  // Если жизни 0 — сразу показываем game over
   if (state.lives <= 0){
+    // строим фон для gameover
     buildLevel(state.level);
     rebuildSegments();
     updateHUD();
@@ -878,10 +1091,11 @@ function boot(){
     phase = 'over';
     setTimeout(showGameOver, 200);
   } else {
-    startLevel();
+    // Показываем главное меню
+    showScreen('screen-main');
   }
 
-  document.getElementById('btn-sound').textContent = state.sound ? '🔊' : '🔇';
+  document.getElementById('set-sound').textContent = state.sound ? '🔊 Звук: вкл' : '🔇 Звук: выкл';
 
   window.addEventListener('resize', () => {
     resize();
