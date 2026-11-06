@@ -189,9 +189,10 @@ const ANIMALS = [
   {e:'🦃', n:'Индюк'},  {e:'🐇', n:'Кролик'},{e:'🦝', n:'Енот'},
 ];
 
+// Изменено: убран комментарий, добавлен "Поделиться"
 const BONUSES = [
   {key:'sub',     icon:'📢', label:'Подписаться на группу',  hint:'+1 жизнь'},
-  {key:'comment', icon:'💬', label:'Оставить комментарий',   hint:'+1 жизнь'},
+  {key:'share',   icon:'🔗', label:'Поделиться игрой',       hint:'+1 жизнь'},
   {key:'invite',  icon:'👥', label:'Пригласить друга',       hint:'+1 жизнь'},
   {key:'msg',     icon:'✉️', label:'Разрешить сообщения',    hint:'+1 жизнь'},
 ];
@@ -360,12 +361,10 @@ function buildLevel(level){
   computeGeometry();
   solutionPath = findSolution();
 
-  // Враги: с 3 уровня
   enemies = [];
   if (level >= 3){
     const count = Math.min(1 + Math.floor((level-3)/3), 3);
     for (let i = 0; i < count; i++){
-      // случайный сегмент, не стартовый и не конечный
       const segs = segments.filter(s => {
         const mx = (s.x1 + s.x2)/2, my = (s.y1 + s.y2)/2;
         return Math.hypot(mx - startPt.x, my - startPt.y) > maze.cell * 2
@@ -782,7 +781,6 @@ function showGameOver(){
   const now = Date.now();
   const canFree = now - state.lastFreeLife >= FREE_LIFE_COOLDOWN;
 
-  // Кнопка бесплатной жизни
   const freeBtn = document.createElement('button');
   freeBtn.className = 'btn';
   if (canFree){
@@ -806,14 +804,12 @@ function showGameOver(){
   }
   el.appendChild(freeBtn);
 
-  // Соцмеханики (опционально)
   const socBtn = document.createElement('button');
   socBtn.className = 'btn ghost small';
   socBtn.innerHTML = '👥 Социальные механики';
   socBtn.onclick = () => { hideOverlay(); showScreen('screen-social'); };
   el.appendChild(socBtn);
 
-  // В меню
   const menuBtn = document.createElement('button');
   menuBtn.className = 'btn ghost small';
   menuBtn.innerHTML = '🏠 В главное меню';
@@ -907,7 +903,6 @@ function showScreen(id){
 function hideOverlay(){ hideAllScreens(); }
 
 function showOverlay(emoji, title, text, buttons){
-  // Используем экран gameover как универсальный для простых сообщений
   const el = document.getElementById('gameover-buttons');
   document.querySelector('#screen-gameover .ov-emoji').textContent = emoji;
   document.querySelector('#screen-gameover h2').textContent = title;
@@ -926,18 +921,6 @@ function showOverlay(emoji, title, text, buttons){
 // ============================================================
 // БОНУСЫ
 // ============================================================
-function bonusButtons(){
-  return BONUSES.map(b => {
-    const used = !!state.bonuses[b.key];
-    return {
-      cls: 'bonus' + (used ? ' used' : ''),
-      html: `<span class="bi">${b.icon}</span>
-             <span class="bt"><span>${b.label}</span>
-             <em>${used ? '✓ уже получено сегодня' : b.hint}</em></span>`,
-      action: () => claimBonus(b.key)
-    };
-  });
-}
 function openBonusPanel(){
   showScreen('screen-social');
 }
@@ -967,9 +950,7 @@ function vkSend(method, params){
 }
 async function doVkAction(key){
   if (key === 'sub')     return vkSend('VKWebAppJoinGroup', { group_id: GROUP_ID });
-  if (key === 'comment') return vkSend('VKWebAppShowWallPostBox', {
-                            message: 'Играю в «Охоту в лабиринте» 🏹 Найди свою тропу!'
-                          });
+  if (key === 'share')   return vkSend('VKWebAppShare', { link: 'https://vk.com/app' + (new URLSearchParams(window.location.search).get('vk_app_id') || '') });
   if (key === 'invite')  return vkSend('VKWebAppShowInviteBox', {});
   if (key === 'msg')     return vkSend('VKWebAppAllowMessagesFromGroup', {
                             group_id: GROUP_ID, key: 'hunt_bonus'
@@ -1081,9 +1062,7 @@ function boot(){
   loadState();
   resize();
 
-  // Если жизни 0 — сразу показываем game over
   if (state.lives <= 0){
-    // строим фон для gameover
     buildLevel(state.level);
     rebuildSegments();
     updateHUD();
@@ -1091,7 +1070,6 @@ function boot(){
     phase = 'over';
     setTimeout(showGameOver, 200);
   } else {
-    // Показываем главное меню
     showScreen('screen-main');
   }
 
@@ -1111,6 +1089,18 @@ function boot(){
   try {
     if (window.vkBridge && typeof vkBridge.send === 'function'){
       vkBridge.send('VKWebAppInit', {});
+      
+      // --- ИСПРАВЛЕНИЕ 2: Обработка сворачивания игры ---
+      if (typeof vkBridge.subscribe === 'function') {
+        vkBridge.subscribe((event) => {
+          if (event.detail && event.detail.type === 'VKWebAppViewHide') {
+            stopMusic(); // Музыка замолкает при сворачивании
+            drawing = false;
+          } else if (event.detail && event.detail.type === 'VKWebAppViewRestore') {
+            if (state.sound) startMusic(); // Музыка возвращается при разворачивании
+          }
+        });
+      }
     }
   } catch(e){}
 }
